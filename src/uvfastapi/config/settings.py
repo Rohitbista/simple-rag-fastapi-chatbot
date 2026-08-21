@@ -15,16 +15,16 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")  # For embedd
 LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")  # For llm, Note: LLM Model from groq: llama-3.1-8b-instant has been depricated
 
 # During persisting vector store and retrieving
-PERSIST_DIR = "./langchain_chroma_db"              # where DB will be stored
-COLLECTION_NAME = "Policy_for_Leaves_and_holidays_chroma_collection"        # collection name
-TOP_K = 5                                # number of results to retrieve
+PERSIST_DIR = os.getenv("PERSIST_DIR", "./langchain_chroma_db")              # where vector DB will be persisted
+COLLECTION_NAME = os.getenv("COLLECTION_NAME")        # collection name
+TOP_K = int(os.getenv("TOP_K", 5))                                # number of results to retrieve
 
 # When using LLM
 # Master toggle — set False to go fully stateless (no history sent to LLM).
 # One line change to kill history if it's eating too many tokens.
-USE_CONVERSATION_HISTORY = True
+USE_CONVERSATION_HISTORY = os.getenv("USE_CONVERSATION_HISTORY", "True") == "True"
  
 # How many past turns (user + assistant pairs) to include in each LLM call.
 # e.g. 5  → last 5 exchanges = 10 messages sent to the LLM alongside the new one.
 # Set to None to send the full history (watch your token budget!).
-MAX_HISTORY_TURNS = 10
+MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", 10))

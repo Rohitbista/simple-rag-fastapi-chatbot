@@ -27,6 +27,14 @@ ANSWER_PROMPT = """
 You are a helpful assistant. Use the provided context to answer the user's question.
 If the answer is not in the context, say you don't know.
 
+Formatting rules:
+- NEVER use tables, including Markdown tables or HTML tables.
+- If information would normally be presented in a table, convert it into bullet points or a numbered list.
+- Prefer short paragraphs and bullet points.
+- Keep responses concise and easy to scan.
+- Use headings when useful.
+- Do not add information that is not supported by the context.
+
 Context:
 {context}
 """
