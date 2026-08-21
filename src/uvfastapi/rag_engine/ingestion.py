@@ -3,7 +3,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2 import service_account
 from pypdf import PdfReader
-from uvfastapi.config.settings import SERVICE_ACCOUNT_FILE_PATH
+from uvfastapi.config.settings import PROJECT_ID, PRIVATE_KEY_ID, PRIVATE_KEY, CLIENT_EMAIL
 
 # 2. Extract text from PDF
 def extract_text_from_pdf(service, file_id):
@@ -86,8 +86,23 @@ def process_folder(service, folder_id):
 def extract_data_from_folder(folder_id):
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
-    creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE_PATH, scopes=SCOPES)
+    credentials_info = {
+        "type": "service_account",
+        "project_id": PROJECT_ID,
+        "private_key_id": PRIVATE_KEY_ID,
+        "private_key": PRIVATE_KEY,
+        "client_email": CLIENT_EMAIL,
+        "token_uri": "https://oauth2.googleapis.com/token",
+    }
 
+    # Old method
+    #creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE_PATH, scopes=SCOPES)
+
+    creds = service_account.Credentials.from_service_account_info(
+        credentials_info, 
+        scopes=SCOPES
+    )
+    
     service = build('drive', 'v3', credentials=creds)
     
     data = process_folder(service, folder_id)

@@ -8,7 +8,10 @@ GROQ_API_KEY = os.getenv("GROQ_TEST_API")  # For llm
 
 GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID") 
 
-SERVICE_ACCOUNT_FILE_PATH = os.getenv("SERVICE_ACCOUNT_FILE_PATH")
+PROJECT_ID = os.getenv("PROJECT_ID")
+PRIVATE_KEY_ID = os.getenv("PRIVATE_KEY_ID")
+PRIVATE_KEY = os.getenv("PRIVATE_KEY").replace("\\n", "\n")
+CLIENT_EMAIL = os.getenv("CLIENT_EMAIL")
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")  # For embedding
 
