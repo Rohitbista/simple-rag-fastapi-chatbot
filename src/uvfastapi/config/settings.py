@@ -31,3 +31,17 @@ USE_CONVERSATION_HISTORY = os.getenv("USE_CONVERSATION_HISTORY", "True") == "Tru
 # e.g. 5  → last 5 exchanges = 10 messages sent to the LLM alongside the new one.
 # Set to None to send the full history (watch your token budget!).
 MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", 10))
+
+POSTGRES_HOST = os.getenv("POSTGRES_HOST")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT")
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_DATABASE = os.getenv("POSTGRES_DATABASE")
+
+
+
+# ── JWT auth (new) ────────────────────────────────────────────────────────────
+ACCESS_TOKEN_EXPIRE_MINUTES=int(os.getenv("JWT_EXPIRY_MINUTES", "1440"))
+JWT_ALGORITHM=os.getenv("JWT_ALGORITHM", "HS256")
+JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY")
+REFRESH_TOKEN_EXPIRE_DAYS=int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "2"))
