@@ -41,6 +41,7 @@ from uvfastapi.services.user_service import (
 
 from .models import LLMQueryRequest
 from .routes import auth_router, superadmin_router, admin_router, user_router, session_router
+from uvfastapi.database.connection import get_pool, close_pool
 
 
 #  Lifespan
@@ -55,12 +56,21 @@ async def lifespan(app: FastAPI):
     app.state.vectorstore = get_vectorstore_for_retrieval(app.state.embedding_function)
     print("Vectorstore ready.")
 
+    # Not yet fully used
+    print("Initializing asyncpg pool...")
+    app.state.db_pool = await get_pool()  # Create pool once on server startup
+    print("DB pool ready.")
+
     # In-memory session store — keyed by user_id (str).
     # Structure: { user_id: [{"role": "user"/"assistant", "content": "..."}, ...] }
     # Lost on restart — swap for Redis / DB sessions when you need persistence.
     app.state.sessions = {}
 
     yield
+
+    print("Closing asyncpg pool...")
+    await close_pool()
+    print("DB pool closed.")
 
     print("Shutting down...")
 
@@ -88,40 +98,39 @@ app.include_router(session_router)     # /api/v1/session/*
 async def root():
     return {"message": "Chatbot is Online and ready to receive queries!"}
 
-
-@app.post("/api/v1/query", tags=["RAG"])
-async def query_data(query: str):
-    """Raw vector search — no LLM. No auth guard."""
-    try:
-        data = await asyncio.wait_for(
-            get_top_result(app.state.vectorstore, query),
-            timeout=10.0,
-        )
-        return {"message": "Successfully retrieved results", "data": data}
-    except asyncio.TimeoutError:
-        return {"message": "Query timed out", "data": []}
-    except Exception as e:
-        return {"message": str(e), "data": []}
-
-
-@app.post("/api/v1/query-llm", tags=["RAG"])
-async def query_data_llm(request: LLMQueryRequest):
-    """
-    Legacy unauthenticated chat endpoint.
-    Kept for backward compatibility — prefer /api/v1/user/chat going forward.
-    """
-    try:
-        history = app.state.sessions.get(request.user_id, [])
-        reply, updated_history = await asyncio.wait_for(
-            get_llm_result(app.state.vectorstore, request.query, history),
-            timeout=30.0,
-        )
-        app.state.sessions[request.user_id] = updated_history
-        return {"message": "Successfully retrieved LLM results", "data": reply}
-    except asyncio.TimeoutError:
-        return {"message": "Query timed out", "data": []}
-    except Exception as e:
-        return {"message": str(e), "data": []}
+# Legacy code might not be necessary also the above app.state.session is important for the below routes
+# @app.post("/api/v1/query", tags=["RAG"])
+# async def query_data(query: str):
+#     """Raw vector search — no LLM. No auth guard."""
+#     try:
+#         data = await asyncio.wait_for(
+#             get_top_result(app.state.vectorstore, query),
+#             timeout=10.0,
+#         )
+#         return {"message": "Successfully retrieved results", "data": data}
+#     except asyncio.TimeoutError:
+#         return {"message": "Query timed out", "data": []}
+#     except Exception as e:
+#         return {"message": str(e), "data": []}
+#
+# @app.post("/api/v1/query-llm", tags=["RAG"])
+# async def query_data_llm(request: LLMQueryRequest):
+#     """
+#     Legacy unauthenticated chat endpoint.
+#     Kept for backward compatibility — prefer /api/v1/user/chat going forward.
+#     """
+#     try:
+#         history = app.state.sessions.get(request.user_id, [])
+#         reply, updated_history = await asyncio.wait_for(
+#             get_llm_result(app.state.vectorstore, request.query, history),
+#             timeout=30.0,
+#         )
+#         app.state.sessions[request.user_id] = updated_history
+#         return {"message": "Successfully retrieved LLM results", "data": reply}
+#     except asyncio.TimeoutError:
+#         return {"message": "Query timed out", "data": []}
+#     except Exception as e:
+#         return {"message": str(e), "data": []}
 
 
 # ─────────────────────────────────────────────
