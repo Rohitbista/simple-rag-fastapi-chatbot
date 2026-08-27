@@ -15,6 +15,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 import asyncpg
+import pgvector.asyncpg
 
 _pool: asyncpg.Pool | None = None
 
@@ -35,6 +36,8 @@ async def get_pool() -> asyncpg.Pool:
             password=POSTGRES_PASSWORD,
             min_size=2,
             max_size=10,
+            # Setup callback runs on every new connection created in the pool
+            setup=pgvector.asyncpg.register_vector,
         )
     return _pool
 

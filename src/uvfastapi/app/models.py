@@ -148,9 +148,54 @@ class ChatRequest(BaseModel):
     query: str
 
 
+class NewChatRequest(BaseModel):
+    """
+    Start a brand-new conversation.
+    An optional title can be supplied upfront; if omitted the conversation
+    will have no title until the caller renames it later.
+    """
+    query: str
+    title: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Optional human-readable title for the new conversation.",
+    )
+
+
+class ContinueChatRequest(BaseModel):
+    """Resume an existing conversation by its ID."""
+    conversation_id: uuid.UUID
+    query: str
+
+
+class RenameConversationRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=500)
+
+
 class ChatResponse(BaseModel):
     reply: str
     user_id: str
+
+
+class NewChatResponse(BaseModel):
+    """Returned by the new-chat endpoint — includes the conversation_id so the
+    caller can reference the conversation in subsequent continue-chat calls."""
+    conversation_id: uuid.UUID
+    reply: str
+    user_id: str
+
+
+class ContinueChatResponse(BaseModel):
+    """Returned by the continue-chat endpoint."""
+    conversation_id: uuid.UUID
+    reply: str
+    user_id: str
+
+
+class RenameConversationResponse(BaseModel):
+    conversation_id: uuid.UUID
+    title: str
+    message: str
 
 
 class ConversationHistoryResponse(BaseModel):

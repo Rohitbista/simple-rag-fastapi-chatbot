@@ -33,9 +33,9 @@ import uvicorn
 from fastapi import FastAPI
 
 from uvfastapi.rag_engine.retrieval import build_embedding_function
-from uvfastapi.rag_engine.orchestrator import get_vectorstore_for_retrieval
+from uvfastapi.rag_engine.orchestrator import ensure_vector_store_ready
 from uvfastapi.services.user_service import (
-    get_llm_result,
+#     get_llm_result,
     get_top_result,
 )
 
@@ -48,18 +48,19 @@ from uvfastapi.database.connection import get_pool, close_pool
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Loading embedding function...")
-    app.state.embedding_function = build_embedding_function()
-    print("Embedding function loaded.")
-
-    print("Loading vectorstore...")
-    app.state.vectorstore = get_vectorstore_for_retrieval(app.state.embedding_function)
-    print("Vectorstore ready.")
-
     # Not yet fully used
     print("Initializing asyncpg pool...")
     app.state.db_pool = await get_pool()  # Create pool once on server startup
     print("DB pool ready.")
+
+    print("Loading embedding function...")
+    app.state.embedding_function = build_embedding_function()
+    print("Embedding function loaded.")
+
+    print("Checking vector store...")
+    await ensure_vector_store_ready(app.state.embedding_function)
+    print("Vector store ready.")
+
 
     # In-memory session store — keyed by user_id (str).
     # Structure: { user_id: [{"role": "user"/"assistant", "content": "..."}, ...] }
@@ -99,20 +100,20 @@ async def root():
     return {"message": "Chatbot is Online and ready to receive queries!"}
 
 # Legacy code might not be necessary also the above app.state.session is important for the below routes
-# @app.post("/api/v1/query", tags=["RAG"])
-# async def query_data(query: str):
-#     """Raw vector search — no LLM. No auth guard."""
-#     try:
-#         data = await asyncio.wait_for(
-#             get_top_result(app.state.vectorstore, query),
-#             timeout=10.0,
-#         )
-#         return {"message": "Successfully retrieved results", "data": data}
-#     except asyncio.TimeoutError:
-#         return {"message": "Query timed out", "data": []}
-#     except Exception as e:
-#         return {"message": str(e), "data": []}
-#
+@app.post("/api/v1/query", tags=["RAG"])
+async def query_data(query: str):
+    """Raw vector search — no LLM. No auth guard."""
+    try:
+        data = await asyncio.wait_for(
+            get_top_result(app.state.embedding_function, query),
+            timeout=10.0,
+        )
+        return {"message": "Successfully retrieved results", "data": data}
+    except asyncio.TimeoutError:
+        return {"message": "Query timed out", "data": []}
+    except Exception as e:
+        return {"message": str(e), "data": []}
+# Legacy code
 # @app.post("/api/v1/query-llm", tags=["RAG"])
 # async def query_data_llm(request: LLMQueryRequest):
 #     """
