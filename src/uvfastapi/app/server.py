@@ -113,7 +113,7 @@ async def query_data(query: str):
         return {"message": "Query timed out", "data": []}
     except Exception as e:
         return {"message": str(e), "data": []}
-# Legacy
+# Legacy code
 # @app.post("/api/v1/query-llm", tags=["RAG"])
 # async def query_data_llm(request: LLMQueryRequest):
 #     """
