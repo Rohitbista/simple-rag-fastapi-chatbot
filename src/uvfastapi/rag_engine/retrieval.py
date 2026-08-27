@@ -2,9 +2,6 @@ import json
 
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
-from langchain_chroma import Chroma
-import asyncio
-from functools import partial
 from uvfastapi.config.settings import EMBEDDING_MODEL, PERSIST_DIR, COLLECTION_NAME, TOP_K
 from uvfastapi.database.connection import get_pool
 
@@ -89,11 +86,6 @@ async def retrieve_top_k_documents_async(
             query_embedding,   # pass list directly — pgvector.asyncpg codec handles encoding
             k,
         )
-
-    for row in rows:
-        print(row)
-        print()
-        print()
  
     docs = [
         Document(
@@ -101,8 +93,10 @@ async def retrieve_top_k_documents_async(
             metadata={
                 "source":      row["source"],
                 "chunk_index": row["chunk_index"],
+                "similarity_score": 1.0 - float(row["distance"]),
+                "distance": float(row["distance"]),
                 **_parse_meta(row["meta"]),
-            },
+            }, 
         )
         for row in rows
     ]

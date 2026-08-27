@@ -1,8 +1,10 @@
 import io
+import fitz
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2 import service_account
-from pypdf import PdfReader
+import pytesseract
+from PIL import Image
 from uvfastapi.config.settings import PROJECT_ID, PRIVATE_KEY_ID, PRIVATE_KEY, CLIENT_EMAIL
 
 # 2. Extract text from PDF
@@ -16,11 +18,30 @@ def extract_text_from_pdf(service, file_id):
         _, done = downloader.next_chunk()
 
     file_stream.seek(0)
-    reader = PdfReader(file_stream)
 
+    # Open stream with PyMuPDF
+    doc = fitz.open(stream=file_stream.read(), filetype="pdf")
     text = ""
-    for page in reader.pages:
-        text += (page.extract_text() or "") + "\n"
+    for page in doc:#reader.pages:
+        text += page.get_text() + "\n"
+
+    # Fallback logic
+    # 2. If no text was extracted, fall back to OCR page-by-page
+    if not text.strip():
+        print("No direct text found. Running OCR fallback on scanned pages...")
+        text = ""
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            # Render page to an image (200 DPI gives good OCR accuracy)
+            pix = page.get_pixmap(dpi=200)
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+            # Extract text from image via Tesseract
+            ocr_text = pytesseract.image_to_string(img)
+            text += ocr_text + "\n"
+
+    # DEBUG check
+    print(f"Extracted {len(text.strip())} chars across {len(doc)} pages.")
 
     return text
 
