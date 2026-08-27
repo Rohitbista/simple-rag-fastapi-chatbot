@@ -58,12 +58,8 @@ async def ingest_data(request: Request, current_user: SuperAdminDep):
     """
     try:
         from uvfastapi.services.user_service import create_or_replace_vector_store
-        from uvfastapi.rag_engine.orchestrator import get_vectorstore_for_retrieval
 
-        create_or_replace_vector_store(request.app.state.embedding_function)
-        request.app.state.vectorstore = get_vectorstore_for_retrieval(
-            request.app.state.embedding_function
-        )
+        await create_or_replace_vector_store(request.app.state.embedding_function)
         return MessageResponse(message="Vector store re-indexed successfully.")
     except Exception as e:
         raise HTTPException(

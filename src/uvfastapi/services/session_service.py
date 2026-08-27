@@ -37,8 +37,7 @@ from uvfastapi.database.session_db import (
     list_conversations,
 )
 from uvfastapi.database.user_db import get_user_by_id, get_user_by_id_and_creator
-from uvfastapi.services.user_service import get_llm_result
-
+from uvfastapi.rag_engine.orchestrator import orchestrate_retrieval_and_generation
 
 # ─────────────────────────────────────────────
 #  Internal helpers
@@ -115,13 +114,16 @@ async def chat_own(
     """
     user_uuid = uuid.UUID(current_user_id)
     sessions = request.app.state.sessions
-    vectorstore = request.app.state.vectorstore
 
     # 1. In-memory history
     history = sessions.get(current_user_id, [])
 
     # 2. LLM call
-    reply, updated_history = await get_llm_result(vectorstore, payload.query, history)
+    reply, updated_history = await orchestrate_retrieval_and_generation(
+        request.app.state.embedding_function,
+        payload.query,
+        history,
+    )
 
     # 3. Update in-memory state
     sessions[current_user_id] = updated_history
@@ -219,13 +221,16 @@ async def chat_as_target(
     await _verify_target_access(pool, target_uuid, caller_id, caller_role)
 
     sessions = request.app.state.sessions
-    vectorstore = request.app.state.vectorstore
 
     # 2. In-memory history for the target
     history = sessions.get(target_user_id, [])
 
     # 3. LLM call
-    reply, updated_history = await get_llm_result(vectorstore, payload.query, history)
+    reply, updated_history = await orchestrate_retrieval_and_generation(
+        request.app.state.embedding_function,
+        payload.query,
+        history,
+    )
 
     # 4. Update in-memory state
     sessions[target_user_id] = updated_history

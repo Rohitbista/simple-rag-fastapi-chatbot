@@ -20,7 +20,7 @@ LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")  # For llm, Note: LLM M
 # During persisting vector store and retrieving
 PERSIST_DIR = os.getenv("PERSIST_DIR", "./langchain_chroma_db")              # where vector DB will be persisted
 COLLECTION_NAME = os.getenv("COLLECTION_NAME")        # collection name
-TOP_K = int(os.getenv("TOP_K", 5))                                # number of results to retrieve
+TOP_K = int(os.getenv("TOP_K", 8))                                # number of results to retrieve
 
 # When using LLM
 # Master toggle — set False to go fully stateless (no history sent to LLM).
