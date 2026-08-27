@@ -113,3 +113,8 @@ logs/
 *~
 .DS_Store
 Thumbs.db
+
+# ==========================================
+# Frontend based .gitignore
+# =========================================
+node_modules/
