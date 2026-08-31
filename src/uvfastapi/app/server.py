@@ -31,6 +31,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from uvfastapi.rag_engine.retrieval import build_embedding_function
 from uvfastapi.rag_engine.orchestrator import ensure_vector_store_ready
@@ -81,6 +82,23 @@ app = FastAPI(
     title="Chatbot API",
     version="2.0.0",
     lifespan=lifespan,
+)
+
+origins = [
+    "http://localhost:3000",      # Common React/Next.js local port
+    "http://127.0.0.1:5173",      # Common Vite/Vue local port
+    "https://yourproductiondomain.com",
+    "http://localhost:5173/",
+    "http://localhost:5173"
+]
+
+# 2. Add the CORS middleware to your application
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,           # Allowed domains
+    allow_credentials=True,          # Allow cookies and auth headers
+    allow_methods=["*"],             # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],             # Allow all headers
 )
 
 # ── Routers ───────────────────────────────────
