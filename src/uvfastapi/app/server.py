@@ -31,6 +31,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from uvfastapi.rag_engine.retrieval import build_embedding_function
 from uvfastapi.rag_engine.orchestrator import ensure_vector_store_ready
@@ -81,6 +82,18 @@ app = FastAPI(
     title="Chatbot API",
     version="2.0.0",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",   # if you serve frontend locally
+        "http://127.0.0.1:3000",
+        # add your production domain here later, e.g. "https://yourdomain.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ── Routers ───────────────────────────────────

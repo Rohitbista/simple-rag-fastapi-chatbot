@@ -12,6 +12,8 @@ wheels/
 # other files
 .env
 langchain_chroma_db/
+node_modules
+node_modules/
 
 # ==========================================
 # Environments & Packages
