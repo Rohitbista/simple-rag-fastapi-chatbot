@@ -89,6 +89,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",   # if you serve frontend locally
         "http://127.0.0.1:3000",
+        "http://localhost:5500"
         # add your production domain here later, e.g. "https://yourdomain.com"
     ],
     allow_credentials=True,
