@@ -4,77 +4,249 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Chatbot Platform</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+
+  <!-- ── Auth Modal ─────────────────────────────────────────────────── -->
   <div id="auth-modal" class="modal">
-    <div class="modal-content">
-      <h2 id="auth-title">Login</h2>
-      <form id="auth-form">
-        <div class="input-group">
+    <div class="modal-card">
+      <div class="modal-logo">
+        <i class="fa-solid fa-robot"></i>
+      </div>
+      <h2 id="auth-title">Sign in</h2>
+      <p class="modal-subtitle">Enter your credentials to continue</p>
+      <form id="auth-form" novalidate>
+        <div class="field">
           <label for="auth-email">Email</label>
-          <input type="email" id="auth-email" required placeholder="name@example.com">
+          <div class="field-input-wrap">
+            <i class="fa-regular fa-envelope field-icon"></i>
+            <input type="email" id="auth-email" autocomplete="email" required placeholder="name@example.com">
+          </div>
         </div>
-        <div class="input-group">
+        <div class="field">
           <label for="auth-password">Password</label>
-          <input type="password" id="auth-password" required placeholder="••••••••">
+          <div class="field-input-wrap">
+            <i class="fa-solid fa-lock field-icon"></i>
+            <input type="password" id="auth-password" autocomplete="current-password" required placeholder="••••••••">
+            <button type="button" class="toggle-password" aria-label="Toggle password visibility" tabindex="-1">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
         </div>
-        <div id="auth-error" class="error-msg hidden"></div>
-        <button type="submit" id="auth-submit-btn" class="btn primary-btn">Login</button>
+        <div id="auth-error" class="error-msg hidden" role="alert"></div>
+        <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-full">
+          <span class="btn-text">Sign in</span>
+          <i class="fa-solid fa-arrow-right btn-icon"></i>
+        </button>
       </form>
     </div>
   </div>
 
-  <div id="app" class="app-container hidden">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <button id="new-chat-btn" class="btn new-chat-btn">
-          <i class="fa-solid fa-plus"></i> New Chat
+  <!-- ── App Shell ──────────────────────────────────────────────────── -->
+  <div id="app" class="app hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-brand">
+          <i class="fa-solid fa-robot brand-icon"></i>
+          <span class="brand-name">AI Chat</span>
+        </div>
+        <button id="new-chat-btn" class="btn btn-new-chat" title="Start new conversation">
+          <i class="fa-solid fa-plus"></i>
+          <span>New Chat</span>
         </button>
       </div>
 
-      <div class="conversations-container">
-        <div class="section-title">Recent Conversations</div>
-        <ul id="conversations-list" class="conversations-list">
-          </ul>
-      </div>
+      <nav class="sidebar-nav">
+        <p class="nav-label">Conversations</p>
+        <ul id="conversations-list" class="conv-list"></ul>
+      </nav>
+
+      <!-- Admin Panel (hidden unless role = ADMIN or SUPERADMIN) -->
+      <nav class="sidebar-nav admin-panel hidden" id="admin-panel">
+        <p class="nav-label">Admin</p>
+        <ul class="admin-list">
+          <li>
+            <button class="admin-nav-btn" id="admin-users-btn">
+              <i class="fa-solid fa-users"></i>
+              <span>Manage Users</span>
+            </button>
+          </li>
+          <li>
+            <button class="admin-nav-btn" id="admin-create-user-btn">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>Create User</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- SuperAdmin Panel (hidden unless role = SUPERADMIN) -->
+      <nav class="sidebar-nav superadmin-panel hidden" id="superadmin-panel">
+        <p class="nav-label">Super Admin</p>
+        <ul class="admin-list">
+          <li>
+            <button class="admin-nav-btn" id="sa-admins-btn">
+              <i class="fa-solid fa-user-shield"></i>
+              <span>All Admins</span>
+            </button>
+          </li>
+          <li>
+            <button class="admin-nav-btn" id="sa-pending-btn">
+              <i class="fa-solid fa-user-clock"></i>
+              <span>Pending Admins</span>
+            </button>
+          </li>
+          <li>
+            <button class="admin-nav-btn" id="sa-all-users-btn">
+              <i class="fa-solid fa-database"></i>
+              <span>All Users</span>
+            </button>
+          </li>
+          <li>
+            <button class="admin-nav-btn" id="sa-reindex-btn">
+              <i class="fa-solid fa-rotate"></i>
+              <span>Re-index Store</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
 
       <div class="sidebar-footer">
-        <div class="user-profile">
-          <i class="fa-solid fa-user-circle avatar"></i>
-          <span id="user-display-name">User</span>
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar-initials">U</div>
+          <div class="user-info">
+            <span id="user-display-name" class="user-name">User</span>
+            <span id="user-role-badge" class="role-badge">user</span>
+          </div>
         </div>
-        <button id="logout-btn" class="icon-btn" title="Logout">
+        <button id="logout-btn" class="icon-btn" title="Sign out" aria-label="Sign out">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
       </div>
     </aside>
 
-    <main class="chat-area">
-      <header class="chat-header">
-        <h3 id="current-chat-title">New Conversation</h3>
-      </header>
+    <!-- Mobile sidebar toggle -->
+    <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+      <i class="fa-solid fa-bars"></i>
+    </button>
 
-      <div id="messages-container" class="messages-container">
-        <div class="empty-state">
-          <i class="fa-regular fa-comments"></i>
-          <h2>Start a new conversation</h2>
-          <p>Send a message below to get started.</p>
+    <!-- Main content -->
+    <main class="main" id="main-content">
+
+      <!-- Chat view (default) -->
+      <section class="chat-view" id="chat-view">
+        <header class="chat-header">
+          <h3 id="current-chat-title" class="chat-title">New Conversation</h3>
+          <div class="chat-header-actions">
+            <span id="chat-meta" class="chat-meta"></span>
+          </div>
+        </header>
+
+        <div id="messages-container" class="messages" role="log" aria-live="polite" aria-label="Conversation messages">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-icon">
+              <i class="fa-regular fa-comments"></i>
+            </div>
+            <h2>Start a conversation</h2>
+            <p>Ask anything — your history stays in the sidebar.</p>
+          </div>
         </div>
-      </div>
 
-      <div class="input-area">
-        <form id="chat-form">
-          <textarea id="chat-input" placeholder="Type your message here..." rows="1" required></textarea>
-          <button type="submit" id="send-btn" class="btn send-btn">
-            <i class="fa-solid fa-paper-plane"></i>
+        <div class="input-area">
+          <form id="chat-form">
+            <div class="input-wrap">
+              <textarea
+                id="chat-input"
+                placeholder="Message…"
+                rows="1"
+                aria-label="Chat message input"
+                autocomplete="off"
+              ></textarea>
+              <button type="submit" id="send-btn" class="send-btn" aria-label="Send message" disabled>
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+            <p class="input-hint">Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line</p>
+          </form>
+        </div>
+      </section>
+
+      <!-- Admin / data view panel -->
+      <section class="panel-view hidden" id="panel-view">
+        <header class="panel-header">
+          <button class="back-to-chat-btn" id="back-to-chat-btn" aria-label="Back to chat">
+            <i class="fa-solid fa-arrow-left"></i>
           </button>
-        </form>
-      </div>
+          <h3 id="panel-title" class="panel-title">Panel</h3>
+        </header>
+
+        <!-- Create user form (admin) -->
+        <div class="panel-section hidden" id="create-user-form-section">
+          <form id="create-user-form" class="data-form">
+            <h4 class="form-heading">Create New User</h4>
+            <div class="field">
+              <label for="new-user-email">Email</label>
+              <div class="field-input-wrap">
+                <i class="fa-regular fa-envelope field-icon"></i>
+                <input type="email" id="new-user-email" placeholder="user@example.com" required>
+              </div>
+            </div>
+            <div class="field">
+              <label for="new-user-username">Username</label>
+              <div class="field-input-wrap">
+                <i class="fa-regular fa-user field-icon"></i>
+                <input type="text" id="new-user-username" placeholder="username" required>
+              </div>
+            </div>
+            <div class="field">
+              <label for="new-user-password">Password</label>
+              <div class="field-input-wrap">
+                <i class="fa-solid fa-lock field-icon"></i>
+                <input type="password" id="new-user-password" placeholder="••••••••" required>
+              </div>
+            </div>
+            <div id="create-user-error" class="error-msg hidden" role="alert"></div>
+            <div id="create-user-success" class="success-msg hidden" role="status"></div>
+            <button type="submit" class="btn btn-primary">
+              <i class="fa-solid fa-user-plus"></i> Create User
+            </button>
+          </form>
+        </div>
+
+        <!-- Data table (users/admins list) -->
+        <div class="panel-section hidden" id="data-table-section">
+          <div id="panel-status" class="panel-status hidden"></div>
+          <div class="table-wrap">
+            <table id="data-table" class="data-table">
+              <thead id="data-table-head"></thead>
+              <tbody id="data-table-body"></tbody>
+            </table>
+            <div class="table-empty hidden" id="table-empty">No records found.</div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Toast notification -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- Scripts — load in dependency order -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/conversations.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/superadmin.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
