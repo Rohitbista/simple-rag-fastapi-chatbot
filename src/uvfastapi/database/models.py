@@ -25,7 +25,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
-
+from pgvector.sqlalchemy import Vector
 
 #  Base
 
@@ -283,3 +283,72 @@ class AuditLog(Base):
 
     def __repr__(self) -> str:
         return f"<AuditLog id={self.id} action={self.action} actor={self.user_id}>"
+
+#  Document Chunks (pgvector)
+ 
+class DocumentChunk(Base):
+    """
+    Stores document chunks and their vector embeddings for semantic search.
+ 
+    - source: original filename or document identifier (e.g. "report_q3.pdf").
+    - content: the raw text of this chunk (used as LLM context on retrieval).
+    - embedding: dense vector produced by the embedding model. Dimension must
+      match EMBEDDING_DIMENSIONS in settings (e.g. 768 for all-MiniLM-L6-v2,
+      1536 for text-embedding-ada-002). Changing the model requires a full
+      re-index — truncate the table and re-populate.
+    - chunk_index: 0-based position of this chunk within the source document,
+      useful for reconstructing reading order or debugging chunking.
+    - meta (JSONB): arbitrary extra fields (page number, section heading, etc.)
+      without schema changes.
+    - collection_name: logical namespace so multiple independent indexes can
+      share the same table (mirrors Chroma's collection concept).
+ 
+    Index strategy:
+      - ivfflat with cosine distance is the right default for sentence-transformer
+        embeddings (they are not unit-normalised, so cosine > inner-product).
+      - lists=100 is a reasonable starting point; tune to sqrt(row_count) once
+        you have production data. Re-index after bulk loads:
+          SELECT ivfflat_reindex('ix_doc_chunks_embedding');
+      - The BTREE index on (collection_name, source) accelerates collection-scoped
+        deletes during re-ingestion without a full table scan.
+ 
+    Re-ingestion pattern (atomic swap):
+      DELETE FROM document_chunks WHERE collection_name = :col;
+      INSERT INTO document_chunks …;   -- bulk insert new chunks
+      This keeps the table consistent and avoids a separate staging table.
+    """
+    __tablename__ = "document_chunks"
+ 
+    # ── columns ───────────────────────────────────────────────
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    collection_name  = Column(String(255), nullable=False, index=True)
+    source           = Column(String(500), nullable=False)   # filename / doc title
+    chunk_index      = Column(Integer,     nullable=False, default=0)
+    content          = Column(Text,        nullable=False)
+    # EMBEDDING_DIMENSIONS must match your model; update the literal if you swap models.
+    # Common values: 384 (all-MiniLM-L6-v2), 768 (mpnet), 1536 (ada-002).
+    embedding        = Column(Vector(384), nullable=False)
+    meta             = Column(JSONB,       nullable=True, default=dict)
+    created_at       = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+ 
+    # ── indexes ────────────────────────────────────────────────
+    __table_args__ = (
+        # ANN index for cosine similarity search (requires pgvector >= 0.4).
+        # Use vector_l2_ops for Euclidean, vector_ip_ops for inner-product.
+        Index(
+            "ix_doc_chunks_embedding",
+            "embedding",
+            postgresql_using="ivfflat",
+            postgresql_with={"lists": 100},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+        # Fast lookup when re-ingesting a specific source within a collection.
+        Index("ix_doc_chunks_collection_source", "collection_name", "source"),
+        Index("ix_doc_chunks_created_at", "created_at"),
+    )
+ 
+    def __repr__(self) -> str:
+        return (
+            f"<DocumentChunk id={self.id} source={self.source!r} "
+            f"chunk={self.chunk_index} collection={self.collection_name!r}>"
+        )

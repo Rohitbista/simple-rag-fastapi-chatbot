@@ -41,6 +41,25 @@ async def list_conversations(
         user_id,
     )
 
+async def delete_conversation_by_id_and_user(
+    pool: asyncpg.Pool,
+    conv_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> None:
+    """
+    Fetch a conversation only when it belongs to the given user.
+    Returns None for a different user's conversation (no info leak).
+    """
+    await pool.execute(
+        """
+        UPDATE conversations
+            SET deleted_at = NOW(),
+                updated_at = NOW()
+            WHERE id = $1 AND user_id = $2
+        """,
+        conv_id,
+        user_id,
+    )
 
 async def get_conversation_by_id_and_user(
     pool: asyncpg.Pool,
@@ -113,6 +132,59 @@ async def soft_delete_conversation(
          WHERE id = $1
         """,
         conv_id,
+    )
+
+
+async def rename_conversation(
+    pool: asyncpg.Pool,
+    conv_id: uuid.UUID,
+    user_id: uuid.UUID,
+    title: str,
+) -> asyncpg.Record | None:
+    """
+    Update the title of a conversation that belongs to the given user.
+
+    Scopes the UPDATE to (id, user_id) so an admin cannot accidentally
+    rename a conversation they don't own via this path.  Returns the
+    updated row, or None if no matching non-deleted conversation was found.
+    """
+    return await pool.fetchrow(
+        """
+        UPDATE conversations
+           SET title      = $3,
+               updated_at = NOW()
+         WHERE id         = $1
+           AND user_id    = $2
+           AND deleted_at IS NULL
+        RETURNING id, user_id, title, created_at, updated_at
+        """,
+        conv_id,
+        user_id,
+        title,
+    )
+
+
+async def rename_conversation_admin(
+    pool: asyncpg.Pool,
+    conv_id: uuid.UUID,
+    title: str,
+) -> asyncpg.Record | None:
+    """
+    Update the title of any non-deleted conversation (no user ownership check).
+    Used by SUPERADMIN / ADMIN paths that have already verified access via
+    _verify_target_access before calling here.
+    """
+    return await pool.fetchrow(
+        """
+        UPDATE conversations
+           SET title      = $2,
+               updated_at = NOW()
+         WHERE id         = $1
+           AND deleted_at IS NULL
+        RETURNING id, user_id, title, created_at, updated_at
+        """,
+        conv_id,
+        title,
     )
 
 
